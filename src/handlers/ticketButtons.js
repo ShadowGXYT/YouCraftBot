@@ -190,7 +190,10 @@ const createTicketModalHandler = {
       const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
       if (!deferSuccess) return;
       
+      const mcName = interaction.fields.getTextInputValue('minecraft_name');
+      const age = interaction.fields.getTextInputValue('age');
       const reason = interaction.fields.getTextInputValue('reason');
+      const experience = interaction.fields.getTextInputValue('experience');
       const config = await getGuildConfig(client, interaction.guildId);
       const categoryId = config.ticketCategoryId || null;
       
