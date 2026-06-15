@@ -133,13 +133,36 @@ const createTicketHandler = {
         .setCustomId('create_ticket_modal')
         .setTitle('Create a Ticket');
 
+      const minecraftName = new TextInputBuilder()
+        .setCustomId('minecraft_name')
+        .setLabel('Minecraft Name')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+      
+      const age = new TextInputBuilder()
+        .setCustomId('age')
+        .setLabel('Alter')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+      
       const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
-        .setLabel('Why are you creating this ticket?')
+        .setLabel('Warum erstellst du dieses Ticket?')
         .setStyle(TextInputStyle.Paragraph)
-        .setPlaceholder('Describe your issue...')
-        .setRequired(true)
-        .setMaxLength(1000);
+        .setRequired(true);
+      
+      const experience = new TextInputBuilder()
+        .setCustomId('experience')
+        .setLabel('Erfahrung')
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(false);
+      
+      modal.addComponents(
+        new ActionRowBuilder().addComponents(minecraftName),
+        new ActionRowBuilder().addComponents(age),
+        new ActionRowBuilder().addComponents(reasonInput),
+        new ActionRowBuilder().addComponents(experience)
+      );
 
       const actionRow = new ActionRowBuilder().addComponents(reasonInput);
       modal.addComponents(actionRow);
