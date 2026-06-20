@@ -68,44 +68,46 @@ export default {
               command: interaction.commandName
             });
 
-            // ─── HIER DEN CODE EINFÜGEN ──────────────────────────────────────
+            // ─── MULTI-ROLE DM RECHTE-PRÜFUNG START ───────────────────────────
             if (!interaction.guild) {
-              const MAIN_SERVER_ID = 'DEINE_YOUCRAFT_SERVER_ID_HIER'; // <-- Ersetze dies mit deiner echten Server-ID!
+              const MAIN_SERVER_ID = 'DEINE_YOUCRAFT_SERVER_ID_HIER'; // <-- Deine echte Server-ID eintragen!
               const guild = client.guilds.cache.get(MAIN_SERVER_ID);
               
               if (!guild) {
                 throw createError(
                   `Main guild ${MAIN_SERVER_ID} not found in client cache.`,
                   ErrorTypes.CONFIGURATION,
-                  'Ein interner Fehler ist aufgetreten. Der Hauptserver wurde nicht gefunden.',
+                  'Hauptserver wurde nicht gefunden.',
                   withTraceContext({ commandName: interaction.commandName }, interactionTraceContext)
                 );
               }
 
-              // 1. Hole die aktuell eingestellte Rollen-ID aus der Datenbank
+              // 1. Hole alle erlaubten Rollen-IDs aus der Datenbank
               const { pool } = await import('../utils/database.js');
-              const dbResult = await pool.query('SELECT role_id FROM guild_dm_roles WHERE guild_id = $1', [MAIN_SERVER_ID]);
-              const allowedRoleId = dbResult.rows[0]?.role_id;
+              const dbResult = await pool.query('SELECT role_ids FROM guild_dm_roles WHERE guild_id = $1', [MAIN_SERVER_ID]);
+              const allowedRoleIds = dbResult.rows[0]?.role_ids || []; // Ist ein Array von IDs
 
-              if (!allowedRoleId) {
+              if (allowedRoleIds.length === 0) {
                 throw createError(
-                  `No DM role configured for guild ${MAIN_SERVER_ID}`,
+                  `No DM roles configured for guild ${MAIN_SERVER_ID}`,
                   ErrorTypes.CONFIGURATION,
-                  'Es wurde noch keine Rolle für DM-Befehle eingerichtet. Bitte nutze zuerst /dmwithrole auf dem Server.',
+                  'Es wurden noch keine Rollen für DM-Befehle eingerichtet. Nutze /dmwithrole auf dem Server.',
                   withTraceContext({ commandName: interaction.commandName }, interactionTraceContext)
                 );
               }
 
               try {
-                // 2. Holt den aktuellen Stand des Mitglieds direkt vom Server ab
+                // 2. Holt das Mitglied live vom Server ab
                 const member = await guild.members.fetch(interaction.user.id);
 
-                // 3. Prüft, ob der User die dynamisch geladene Rolle besitzt
-                if (!member.roles.cache.has(allowedRoleId)) {
+                // 3. Prüft, ob der User mindestens eine der erlaubten Rollen hat
+                const hatMindestensEineRolle = allowedRoleIds.some(roleId => member.roles.cache.has(roleId));
+
+                if (!hatMindestensEineRolle) {
                   throw createError(
-                    `User ${interaction.user.id} missing configured DM role ${allowedRoleId}`,
+                    `User ${interaction.user.id} missing any configured DM roles`,
                     ErrorTypes.PERMISSION,
-                    'Du hast nicht die benötigte Rolle auf dem Youcraft-Server, um Befehle in den DMs zu nutzen.',
+                    'Du hast keine der erlaubten Rollen auf dem Server, um Befehle in den DMs zu nutzen.',
                     withTraceContext({ commandName: interaction.commandName }, interactionTraceContext)
                   );
                 }
@@ -113,19 +115,12 @@ export default {
                 throw createError(
                   `User ${interaction.user.id} is not a member of the main guild.`,
                   ErrorTypes.PERMISSION,
-                  'Du musst Mitglied auf dem Youcraft-Server sein, um diesen Bot in den DMs nutzen zu können.',
+                  'Du musst Mitglied auf dem Server sein, um diesen Bot in den DMs nutzen zu können.',
                   withTraceContext({ commandName: interaction.commandName }, interactionTraceContext)
                 );
               }
             }
-            // ─── ENDE DES NEUEN CODES ────────────────────────────────────────
-
-            validateChatInputPayloadOrThrow(interaction, withTraceContext({
-              type: 'command_input_validation',
-              commandName: interaction.commandName
-            }, interactionTraceContext));
-
-            // ... (Rest deiner interactionCreate.js)
+            // ─── MULTI-ROLE DM RECHTE-PRÜFUNG ENDE ────────────────────────────
 
             const abuseProtection = await enforceAbuseProtection(interaction, command, interaction.commandName);
             if (!abuseProtection.allowed) {
